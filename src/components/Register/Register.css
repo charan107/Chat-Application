@@ -1,0 +1,541 @@
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    circle at top,
+    #141828,
+    var(--bg-main)
+  );
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+.register-card {
+  width: 380px;
+  padding: 32px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.register-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.register-subtitle {
+  margin-top: 8px;
+  margin-bottom: 32px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.register-form input {
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.register-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.register-form input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.register-footer {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  margin-left: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: underline;
+  transition: opacity 0.2s ease;
+}
+
+.link-btn:hover {
+  opacity: 0.8;
+}
+
+.otp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.otp-actions {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.profile-photo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.file-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.file-upload-area {
+  position: relative;
+  border: 2px dashed var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-tertiary);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-area:hover {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.file-input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+}
+
+.file-upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.upload-icon {
+  font-size: 32px;
+  opacity: 0.7;
+}
+
+.upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upload-primary {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.upload-secondary {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--accent);
+  color: white;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+textarea {
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.4;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.preferences-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.preference-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preference-group label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.radio-group, .toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.radio-option, .toggle-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.radio-option:hover, .toggle-option:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-subtle);
+}
+
+.radio-option input[type="radio"], .toggle-option input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-subtle);
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.radio-option input[type="radio"]:checked + .radio-custom {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.radio-option input[type="radio"]:checked + .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.toggle-custom {
+  width: clamp(2.75rem, 7vw, 2.75rem);
+  height: clamp(1.5rem, 4vw, 1.5rem);
+  background: var(--border-subtle);
+  border-radius: clamp(0.75rem, 2vw, 0.75rem);
+  position: relative;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.toggle-option input[type="checkbox"]:checked + .toggle-custom {
+  background: var(--accent);
+}
+
+.toggle-custom::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: clamp(1.25rem, 3vw, 1.25rem);
+  height: clamp(1.25rem, 3vw, 1.25rem);
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-option input[type="checkbox"]:checked + .toggle-custom::after {
+  transform: translateX(calc(clamp(2.75rem, 7vw, 2.75rem) - clamp(1.25rem, 3vw, 1.25rem) - 4px));
+}
+
+.radio-label, .toggle-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+/* Animations */
+.card-transition {
+  animation: cardSlideOut 0.5s ease-in-out;
+}
+
+@keyframes cardSlideOut {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.success-check {
+  animation: checkmark 0.8s ease-in-out;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+@keyframes checkmark {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.btn.loading, .btn.success {
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::before, .btn.success::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .register-card {
+    width: 90%;
+    padding: 28px;
+  }
+
+  .register-title {
+    font-size: 24px;
+  }
+
+  .register-subtitle {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .register-form {
+    gap: 14px;
+  }
+
+  .register-form input {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .register-footer {
+    font-size: 13px;
+  }
+
+  .link-btn {
+    font-size: 13px;
+  }
+
+  .otp-actions {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .file-upload-area {
+    padding: 20px;
+    min-height: 100px;
+  }
+
+  .upload-icon {
+    font-size: 28px;
+  }
+
+  .upload-primary {
+    font-size: 14px;
+  }
+
+  .upload-secondary {
+    font-size: 12px;
+  }
+
+  .file-name {
+    font-size: 12px;
+    max-width: 150px;
+  }
+
+  .upload-hint {
+    font-size: 11px;
+  }
+
+  textarea {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+
+  .preference-group label {
+    font-size: 14px;
+  }
+
+  .radio-group label, .toggle-group label {
+    font-size: 13px;
+  }
+
+  .radio-option, .toggle-option {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .radio-custom {
+    width: 18px;
+    height: 18px;
+  }
+
+  .toggle-custom {
+    width: 40px;
+    height: 22px;
+  }
+
+  .toggle-custom::after {
+    width: 18px;
+    height: 18px;
+  }
+
+  .toggle-option input[type="checkbox"]:checked + .toggle-custom::after {
+    transform: translateX(18px);
+  }
+
+  .radio-label, .toggle-label {
+    font-size: 14px;
+  }
+}
+
+/* Registration Animation Styles */
+.register-form .btn:disabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.success-checkmark {
+  color: #10b981;
+  font-size: 18px;
+  font-weight: bold;
+  animation: checkmark-bounce 0.6s ease-in-out;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes checkmark-bounce {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.form-disabled {
+  opacity: 0.7;
+  pointer-events: none;
+}

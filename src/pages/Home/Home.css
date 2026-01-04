@@ -1,0 +1,15 @@
+.home-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.98);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-animated {
+  opacity: 1;
+  transform: scale(1);
+}
