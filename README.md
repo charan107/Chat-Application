@@ -1,20 +1,74 @@
-<<<<<<< HEAD
-# Chat-Application
-=======
-# React + Vite
+# AI Powered Chat Application 💬
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive chat application focused on **clean UI**, **smooth interactions**, and a **scalable foundation** for real-time and AI features.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Core Features
 
-## React Compiler
+### Chat
+- One-to-one chat interface
+- Sidebar with chat list
+- Chat filtering:
+  - All
+  - Unread
+  - Favourites
+- Message send & receive UI
+- Sent / received message styling
+- Message selection mode with bulk actions
+- Context menus (three-dot actions)
+- Attachment popup UI
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+### Voice & Video Call (UI)
+- Voice call window (floating, independent overlay)
+- Video call mode using same call window
+- Medium-sized centered call window
+- Minimize call to top-right compact view
+- Fullscreen toggle with smooth animation
+- End call action
+- Active state indicators for call controls
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
->>>>>>> feature-voice-call
+*(UI only — media logic to be integrated later)*
+
+---
+
+### UI & UX
+- Fully dark theme using CSS variables
+- Consistent color grading across app
+- Smooth hover & transition effects
+- Responsive layout:
+  - Mobile
+  - Tablet
+  - Desktop
+- Sidebar → Chat navigation with back support
+- Hidden scrollbars for clean chat experience
+
+---
+
+### State & Data Handling
+- Global state using React Context
+- Local persistence using `localStorage`
+- Chats, messages, unread counts handled locally
+- Offline-first behavior (no backend dependency yet)
+
+---
+
+## 🧠 Tech Stack
+
+- React (Vite)
+- Context API
+- Custom Hooks
+- CSS Variables
+- React Icons
+
+---
+
+## 📂 Project Setup
+
+```bash
+git clone https://github.com/your-username/ai-powered-chat-app.git
+cd ai-powered-chat-app
+npm install
+npm run dev
