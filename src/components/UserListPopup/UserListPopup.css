@@ -1,0 +1,339 @@
+/* Overlay - Full screen backdrop */
+.user-list-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 17, 23, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Popup Container - Centered */
+.user-list-popup {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.user-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.user-list-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-list-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+
+.user-list-close-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* Search */
+.user-list-search {
+  position: relative;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.user-list-search .search-icon {
+  position: absolute;
+  left: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+.user-list-search input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.user-list-search input:focus {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+.user-list-search input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Content Area */
+.user-list-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.user-list-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-list-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.user-list-content::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+
+.user-list-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Loading State */
+.user-list-loading {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Empty State */
+.user-list-empty {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.user-list-empty .empty-icon {
+  font-size: 48px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.user-list-empty p {
+  margin: 8px 0;
+  color: var(--text-secondary);
+}
+
+.user-list-empty .empty-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* User List Items */
+.user-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.user-list-item:hover {
+  background: var(--hover-bg);
+  border-color: var(--border-subtle);
+}
+
+.user-list-item.creating {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Avatar */
+.user-list-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+
+.user-list-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-list-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.user-online-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border: 2px solid var(--bg-secondary);
+  border-radius: 50%;
+}
+
+/* User Info */
+.user-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-list-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-list-username {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.user-list-about {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Action Button */
+.user-list-action {
+  flex-shrink: 0;
+}
+
+.start-chat-btn {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.start-chat-btn:hover {
+  background: #3d6aff;
+  transform: translateY(-1px);
+}
+
+.chat-exists-badge,
+.creating-badge {
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.creating-badge {
+  color: var(--accent);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .user-list-popup {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .user-list-header {
+    padding: 20px;
+  }
+
+  .user-list-header h2 {
+    font-size: 18px;
+  }
+
+  .user-list-search {
+    padding: 12px 20px;
+  }
+
+  .user-list-item {
+    padding: 12px;
+  }
+
+  .user-list-avatar {
+    width: 40px;
+    height: 40px;
+  }
+}

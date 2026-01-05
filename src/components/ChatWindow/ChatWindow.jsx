@@ -144,14 +144,12 @@ const ChatWindow = ({ onBack }) => {
       </div>
     );
   }
-  const chatMessages = messages?.[activeChat] || [];
+  const chatMessages = Array.isArray(messages) ? messages : (messages?.[activeChat] || []);
 
-  // Mock status for sent messages (in a real app, this would come from the backend)
-  const getMessageStatus = (index) => {
-    if (chatMessages[index]?.type !== "sent") return null;
-    // Simulate different statuses based on message index
-    const statuses = ["sent", "delivered", "read"];
-    return statuses[index % statuses.length];
+  // Get message status from Firebase data
+  const getMessageStatus = (message) => {
+    if (message?.type !== "sent") return null;
+    return message.status || "sent"; // sent, delivered, read
   };
 
   const handleSend = () => {
@@ -275,26 +273,38 @@ const ChatWindow = ({ onBack }) => {
 
         {/* Messages */}
         <div className="messages">
-          {chatMessages.map((m, i) => (
-            <Message
-              key={i}
-              message={m}
-              type={m.type}
-              timestamp={m.timestamp || new Date()}
-              status={m.type === "sent" ? getMessageStatus(i) : null}
-              isSelectable={selectMode}
-              isSelected={selectedMessages.includes(i)}
-              onClick={() => {
-                if (!selectMode) return;
+          {chatMessages.map((m, i) => {
+            // Handle Firebase Timestamp
+            let timestamp = m.timestamp || m.createdAt;
+            if (timestamp?.toDate) {
+              timestamp = timestamp.toDate();
+            } else if (typeof timestamp === 'number') {
+              timestamp = new Date(timestamp);
+            } else if (!timestamp) {
+              timestamp = new Date();
+            }
 
-                setSelectedMessages((prev) =>
-                  prev.includes(i)
-                    ? prev.filter((id) => id !== i)
-                    : [...prev, i]
-                );
-              }}
-            />
-          ))}
+            return (
+              <Message
+                key={m.id || i}
+                message={m}
+                type={m.type}
+                timestamp={timestamp}
+                status={getMessageStatus(m)}
+                isSelectable={selectMode}
+                isSelected={selectedMessages.includes(i)}
+                onClick={() => {
+                  if (!selectMode) return;
+
+                  setSelectedMessages((prev) =>
+                    prev.includes(i)
+                      ? prev.filter((id) => id !== i)
+                      : [...prev, i]
+                  );
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* Input + Popup Wrapper */}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { loginUser } from "../../firebase/auth";
 import { useNavigate } from "react-router-dom";
 import Button from "../Button/Button";
 import "./Login.css";
@@ -19,7 +20,13 @@ const Login = () => {
       [name]: value
     }));
   };
-
+  const handleLogin = async () => {
+  try {
+    await loginUser(formData.email, formData.password);
+  } catch (err) {
+    alert(err.message);
+  }
+};
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
@@ -62,7 +69,7 @@ const Login = () => {
             required
           />
 
-          <Button type="submit" disabled={isLoggingIn || loginComplete}>
+          <Button type="submit" onClick={handleLogin} disabled={isLoggingIn || loginComplete}>
             {isLoggingIn ? (
               <>
                 <div className="loading-spinner"></div>

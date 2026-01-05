@@ -1,13 +1,15 @@
 import "./Sidebar.css";
 import ChatListItem from "../ChatListItem/ChatListItem";
+import UserListPopup from "../UserListPopup/UserListPopup";
 import { FiPlus, FiMoreVertical, FiSearch } from "react-icons/fi";
 import { FiLock } from "react-icons/fi";
 import { useChat } from "../../context/ChatContext";
 import { useState } from "react";
 
 const Sidebar = () => {
-  const { chats, selectChat } = useChat();
+  const { chats, selectChat, loading } = useChat();
   const [category, setCategory] = useState("all");
+  const [showUserList, setShowUserList] = useState(false);
 
   const filteredChats = chats.filter((chat) => {
   if (category === "unread") return chat.unreadCount > 0;
@@ -21,7 +23,7 @@ const Sidebar = () => {
       <div className="sidebar-header">
         <h2>Chats</h2>
         <div className="sidebar-icons">
-          <FiPlus />
+          <FiPlus onClick={() => setShowUserList(true)} style={{ cursor: "pointer" }} />
           <FiMoreVertical />
         </div>
       </div>
@@ -77,18 +79,36 @@ const Sidebar = () => {
 
       {/* Chat List */}
       <div className="chat-list">
-          {filteredChats.map((chat) => (
-
-          <div key={chat.id} onClick={() => selectChat(chat.id)}>
-            <ChatListItem
-              name={chat.name}
-              message={chat.lastMessage}
-              time={chat.time}
-              unreadCount={chat.unreadCount}
-            />
+        {loading ? (
+          <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+            Loading chats...
           </div>
-        ))}
+        ) : filteredChats.length === 0 ? (
+          <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+            <p>No chats yet</p>
+            <p style={{ fontSize: "12px", marginTop: "8px" }}>
+              Start a new conversation to begin chatting
+            </p>
+          </div>
+        ) : (
+          filteredChats.map((chat) => (
+            <div key={chat.id} onClick={() => selectChat(chat.id)}>
+              <ChatListItem
+                name={chat.name || "Unknown User"}
+                message={chat.lastMessage || ""}
+                time={chat.time || ""}
+                unreadCount={chat.unreadCount || 0}
+              />
+            </div>
+          ))
+        )}
       </div>
+
+      {/* User List Popup */}
+      <UserListPopup
+        isOpen={showUserList}
+        onClose={() => setShowUserList(false)}
+      />
     </div>
   );
 };

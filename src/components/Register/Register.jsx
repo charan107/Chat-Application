@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../Button/Button";
 import "./Register.css";
+import { registerUser } from "../../firebase/auth";
+import { db, storage } from "../../firebase/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -13,7 +17,6 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    otp: '',
     profilePhoto: null,
     displayName: '',
     about: '',
@@ -21,13 +24,23 @@ const Register = () => {
     readReceipts: true,
     lastSeen: 'everyone'
   });
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(0);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
   const [cardTransition, setCardTransition] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Handle navigation when registration completes
+  useEffect(() => {
+    if (registrationComplete && !isRegistering) {
+      console.log("Registration complete, setting up navigation...");
+      const timer = setTimeout(() => {
+        console.log("Navigating to login...");
+        navigate("/login", { replace: true });
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [registrationComplete, isRegistering, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -35,58 +48,14 @@ const Register = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : type === 'file' ? files[0] : value
     }));
-  };
-
-  const sendOTP = () => {
-    setIsOtpSent(true);
-    setOtpCountdown(30);
-    // Simulate API call
-    setTimeout(() => {
-      console.log('OTP sent to:', formData.email);
-    }, 500);
-  };
-
-  const resendOTP = () => {
-    sendOTP();
-  };
-
-  useEffect(() => {
-    let timer;
-    if (otpCountdown > 0) {
-      timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
-    } else {
-      setIsOtpSent(false);
+    // Clear error when user starts typing
+    if (error) {
+      setError(null);
     }
-    return () => clearTimeout(timer);
-  }, [otpCountdown]);
-
-  const verifyOTP = async () => {
-    if (formData.otp.length !== 6) return;
-    setIsVerifying(true);
-    // Simulate API verification
-    setTimeout(() => {
-      setIsVerified(true);
-      setTimeout(() => {
-        setCardTransition(true);
-        setTimeout(() => {
-          setStep(3);
-          setCardTransition(false);
-        }, 500);
-      }, 1000);
-    }, 2000);
   };
 
   const nextStep = () => {
-    if (step === 1) {
-      sendOTP();
-      setStep(2);
-    } else if (step === 2) {
-      if (isVerified) {
-        setStep(3);
-      } else {
-        verifyOTP();
-      }
-    } else if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
     }
   };
@@ -95,38 +64,184 @@ const Register = () => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsRegistering(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      console.log('Registration data:', formData);
+    setRegistrationComplete(false);
+    setError(null); // Clear any previous errors
+
+    try {
+      console.log("Starting registration...");
+      
+      // 1️⃣ Create Auth user
+      console.log("Creating Firebase Auth user...");
+      const userCredential = await registerUser(
+        formData.email,
+        formData.password
+      );
+
+      const user = userCredential.user;
+      console.log("Auth user created:", user.uid);
+      
+      let photoURL = "";
+
+      // 2️⃣ Upload profile photo (if exists)
+      if (formData.profilePhoto) {
+        try {
+          console.log("Uploading profile photo...");
+          const photoRef = ref(
+            storage,
+            `profile-images/${user.uid}`
+          );
+
+          await uploadBytes(photoRef, formData.profilePhoto);
+          photoURL = await getDownloadURL(photoRef);
+          console.log("Photo uploaded:", photoURL);
+        } catch (uploadError) {
+          console.error("Photo upload error:", uploadError);
+          // Continue registration even if photo upload fails
+        }
+      }
+
+      // 3️⃣ Save complete user profile + preferences (Firestore)
+      console.log("Saving user data to Firestore...");
+      const userData = {
+        // Basic Information
+        uid: user.uid,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        username: formData.username,
+        displayName: formData.displayName || `${formData.firstName} ${formData.lastName}`,
+        fullName: `${formData.firstName} ${formData.lastName}`,
+        about: formData.about || '',
+        photoURL: photoURL || '',
+        
+        // Preferences
+        preferences: {
+          whoCanMessage: formData.whoCanMessage,
+          readReceipts: formData.readReceipts,
+          lastSeen: formData.lastSeen,
+        },
+        
+        // Status & Activity
+        isOnline: false,
+        lastSeenTimestamp: serverTimestamp(),
+        status: 'offline', // online, offline, away
+        
+        // Chat-related data
+        // Note: chatIds is optional - chats are queried using members array
+        // Keeping it for potential future use (caching, quick access)
+        chatIds: [], // Optional: Array of chat IDs (not required for queries)
+        unreadCount: 0, // Total unread messages across all chats
+        
+        // Timestamps
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      // Save to Firestore with timeout and error handling
+      const firestorePromise = setDoc(doc(db, "users", user.uid), userData);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Firestore operation timed out after 5 seconds")), 5000)
+      );
+
+      try {
+        await Promise.race([firestorePromise, timeoutPromise]);
+        console.log("User data saved to Firestore successfully");
+      } catch (firestoreError) {
+        console.error("Firestore save error:", firestoreError);
+        // Even if Firestore fails, user is created in Auth, so continue with registration
+        // The user can update their profile later
+        console.warn("Continuing registration despite Firestore error - user is authenticated");
+        // Don't show error since registration succeeded - profile can be updated later
+      }
+
+      // 4️⃣ Success UI - Update states
+      console.log("Registration complete, updating UI...");
+      
+      // Clear any errors and update states - useEffect will handle navigation
+      setError(null);
       setIsRegistering(false);
       setRegistrationComplete(true);
+
+    } catch (error) {
+      console.error("Registration error:", error);
+      console.error("Error details:", {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      setIsRegistering(false);
+      setRegistrationComplete(false);
       
-      // Show success animation for 2 seconds before redirecting
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    }, 1500);
+      // Convert Firebase error codes to user-friendly messages
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = "This email is already registered. Please use a different email or try logging in.";
+            break;
+          case 'auth/invalid-email':
+            errorMessage = "Please enter a valid email address.";
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = "Email/password accounts are not enabled. Please contact support.";
+            break;
+          case 'auth/weak-password':
+            errorMessage = "Password is too weak. Please use at least 6 characters.";
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = "Network error. Please check your internet connection and try again.";
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = "Too many attempts. Please try again later.";
+            break;
+          default:
+            errorMessage = error.message || "Registration failed. Please try again.";
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+    }
   };
+
 
   return (
     <div className="register-container">
       <div className={`register-card ${cardTransition ? 'card-transition' : ''}`}>
         <h1 className="register-title">
           {step === 1 && 'Create account'}
-          {step === 2 && 'Verify your email'}
-          {step === 3 && 'Set up your profile'}
-          {step === 4 && 'Personalize your experience'}
+          {step === 2 && 'Set up your profile'}
+          {step === 3 && 'Personalize your experience'}
         </h1>
         <p className="register-subtitle">
           {step === 1 && 'Join and start chatting instantly'}
-          {step === 2 && (isVerified ? 'Email verified successfully!' : isOtpSent ? `OTP sent to ${formData.email}. Please wait ${otpCountdown} seconds before requesting another.` : 'Enter the verification code sent to your email')}
-          {step === 3 && 'Make your profile unique and personal'}
-          {step === 4 && 'Choose your privacy preferences'}
+          {step === 2 && 'Make your profile unique and personal'}
+          {step === 3 && 'Choose your privacy preferences'}
         </p>
+
+        {error && (
+          <div style={{
+            backgroundColor: '#fee',
+            color: '#c33',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid #fcc',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '18px' }}>⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
 
         <form className={`register-form ${isRegistering || registrationComplete ? 'form-disabled' : ''}`} onSubmit={handleSubmit}>
           {step === 1 && (
@@ -187,54 +302,6 @@ const Register = () => {
 
           {step === 2 && (
             <>
-              <div className="otp-section">
-                <input
-                  type="text"
-                  name="otp"
-                  placeholder="Enter 6-digit code"
-                  value={formData.otp}
-                  onChange={handleInputChange}
-                  maxLength="6"
-                  required
-                  disabled={isVerified}
-                />
-                <div className="otp-actions">
-                  {!isOtpSent && !isVerified && (
-                    <>
-                      <button type="button" className="link-btn" onClick={sendOTP}>
-                        Send OTP
-                      </button>
-                      <button type="button" className="link-btn" onClick={resendOTP}>
-                        Resend
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="button-group">
-                <Button type="button" variant="secondary" onClick={prevStep}>
-                  Previous
-                </Button>
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  className={isVerifying ? 'loading' : isVerified ? 'success' : ''}
-                  disabled={isVerifying || isVerified || formData.otp.length !== 6}
-                >
-                  {isVerifying ? (
-                    <div className="loading-spinner"></div>
-                  ) : isVerified ? (
-                    <div className="success-check">✓</div>
-                  ) : (
-                    'Verify'
-                  )}
-                </Button>
-              </div>
-            </>
-          )}
-
-          {step === 3 && (
-            <>
               <div className="profile-photo-section">
                 <label className="file-label">
                   Profile Photo (Optional)
@@ -281,6 +348,9 @@ const Register = () => {
                 maxLength="100"
               />
               <div className="button-group">
+                <Button type="button" variant="secondary" onClick={prevStep}>
+                  Previous
+                </Button>
                 <Button type="button" onClick={nextStep}>
                   Next
                 </Button>
@@ -288,7 +358,7 @@ const Register = () => {
             </>
           )}
 
-          {step === 4 && (
+          {step === 3 && (
             <>
               <div className="preferences-section">
                 <div className="preference-group">
