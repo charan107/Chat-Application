@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FiSend,
   FiVideo,
@@ -23,6 +23,9 @@ import {
 import "./ChatWindow.css";
 import ContextMenu from "../ContextMenu/ContextMenu";
 import { useChat } from "../../context/ChatContext";
+import { useAuth } from "../../context/AuthContext";
+import { storage } from "../../firebase/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Button from "../Button/Button";
 import Message from "../Message/Message";
 import ContactInfo from "../ContactInfo/ContactInfo";
@@ -33,8 +36,7 @@ const attachmentItems = [
     label: "Photo / Video",
     icon: FiImage,
     onClick: () => {
-      alert("Photo/Video picker coming soon!");
-      setShowAttach(false);
+      fileInputRef.current?.click();
     },
   },
   {
@@ -100,11 +102,19 @@ const ChatWindow = ({ onBack }) => {
   const {
     activeChat,
     messages,
+    chats,
     addMessage,
     deleteChat,
     selectChat,
     deleteSelectedMessages,
+    deleteMessage,
+    setTyping,
+    typingUsers,
   } = useChat();
+  const { user } = useAuth();
+  
+  // Get active chat info
+  const activeChatInfo = chats.find((chat) => chat.id === activeChat);
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -114,6 +124,10 @@ const ChatWindow = ({ onBack }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Recording timer
   useEffect(() => {
@@ -152,15 +166,114 @@ const ChatWindow = ({ onBack }) => {
     return message.status || "sent"; // sent, delivered, read
   };
 
-  const handleSend = () => {
+  // Typing indicator
+  useEffect(() => {
+    if (!activeChat || !setTyping) return;
+
+    if (message.trim() && !isTyping) {
+      setIsTyping(true);
+      setTyping(activeChat, true);
+    }
+
+    // Clear typing indicator after 3 seconds of no typing
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTyping) {
+        setIsTyping(false);
+        setTyping(activeChat, false);
+      }
+    }, 3000);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [message, activeChat, isTyping, setTyping]);
+
+  // Stop typing when message is sent
+  useEffect(() => {
+    if (!message.trim() && isTyping && setTyping) {
+      setIsTyping(false);
+      setTyping(activeChat, false);
+    }
+  }, [message, isTyping, activeChat, setTyping]);
+
+  const handleSend = async () => {
     if (!message.trim()) return;
 
-    addMessage(activeChat, {
+    // Stop typing
+    if (isTyping && setTyping) {
+      setIsTyping(false);
+      setTyping(activeChat, false);
+    }
+
+    await addMessage(activeChat, {
       text: message,
       type: "sent",
     });
 
     setMessage("");
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeChat || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      // Upload to Firebase Storage
+      const imageRef = ref(storage, `chat-images/${activeChat}/${Date.now()}_${file.name}`);
+      await uploadBytes(imageRef, file);
+      const imageURL = await getDownloadURL(imageRef);
+
+      // Send message with image
+      await addMessage(activeChat, {
+        text: file.name,
+        type: "sent",
+        imageURL: imageURL,
+        fileName: file.name,
+        fileType: file.type,
+      });
+
+      setShowAttach(false);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleMessageDelete = async (messageId) => {
+    if (!messageId || !activeChat) return;
+    
+    if (window.confirm("Are you sure you want to delete this message?")) {
+      try {
+        await deleteMessage(activeChat, messageId);
+      } catch (error) {
+        console.error("Error deleting message:", error);
+        alert("Failed to delete message. Please try again.");
+      }
+    }
   };
 
   const startRecording = () => {
@@ -207,8 +320,14 @@ const ChatWindow = ({ onBack }) => {
             <button className="back-btn" onClick={onBack}>
               <FiArrowLeft />
             </button>
-            <div className="chat-avatar">{activeChat.charAt(0)}</div>
-            <span className="chat-title">{activeChat}</span>
+            <div className="chat-avatar">
+              {activeChatInfo?.photoURL ? (
+                <img src={activeChatInfo.photoURL} alt={activeChatInfo.name} />
+              ) : (
+                (activeChatInfo?.name || "U").charAt(0).toUpperCase()
+              )}
+            </div>
+            <span className="chat-title">{activeChatInfo?.name || "Unknown User"}</span>
           </div>
 
           <div className="chat-header-actions">
@@ -220,10 +339,14 @@ const ChatWindow = ({ onBack }) => {
 
                 <FiTrash2
                   className="header-icon"
-                  onClick={() => {
-                    deleteSelectedMessages(activeChat, selectedMessages);
-                    setSelectedMessages([]);
-                    setSelectMode(false);
+                  onClick={async () => {
+                    try {
+                      await deleteSelectedMessages(activeChat, selectedMessages);
+                      setSelectedMessages([]);
+                      setSelectMode(false);
+                    } catch (error) {
+                      alert("Failed to delete messages. Please try again.");
+                    }
                   }}
                 />
 
@@ -292,35 +415,68 @@ const ChatWindow = ({ onBack }) => {
                 timestamp={timestamp}
                 status={getMessageStatus(m)}
                 isSelectable={selectMode}
-                isSelected={selectedMessages.includes(i)}
+                isSelected={selectedMessages.includes(m.id)}
                 onClick={() => {
-                  if (!selectMode) return;
+                  if (!selectMode) {
+                    // Long press or right click to delete (on mobile, show context menu)
+                    return;
+                  }
 
                   setSelectedMessages((prev) =>
-                    prev.includes(i)
-                      ? prev.filter((id) => id !== i)
-                      : [...prev, i]
+                    prev.includes(m.id)
+                      ? prev.filter((id) => id !== m.id)
+                      : [...prev, m.id]
                   );
                 }}
+                onDelete={() => handleMessageDelete(m.id)}
               />
             );
           })}
+          
+          {/* Typing Indicator */}
+          {typingUsers && typingUsers.length > 0 && (
+            <div className="typing-indicator">
+              <div className="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span className="typing-text">
+                {typingUsers.length === 1 ? 'is typing...' : 'are typing...'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Input + Popup Wrapper */}
         <div className="chat-input-wrapper">
           <div className={`chat-input ${isRecording ? "hidden" : ""}`}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+            />
             <button
               className="input-icon-btn"
               onClick={() => setShowAttach((prev) => !prev)}
+              disabled={uploadingImage}
             >
               <FiPlus />
             </button>
 
             <input
-              placeholder="Type a message..."
+              placeholder={uploadingImage ? "Uploading image..." : "Type a message..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              disabled={uploadingImage}
             />
 
             {message.trim() ? (

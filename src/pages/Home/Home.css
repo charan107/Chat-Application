@@ -1,6 +1,8 @@
 .home-container {
   display: flex;
   min-height: 100vh;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
   background: var(--bg-main);
   color: var(--text-primary);
   overflow: hidden;
@@ -12,4 +14,18 @@
 .home-animated {
   opacity: 1;
   transform: scale(1);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .home-container {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-container {
+    height: 100vh;
+    height: 100dvh;
+  }
 }

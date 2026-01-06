@@ -1,7 +1,7 @@
-import { FiClock, FiCheck, FiPlay } from "react-icons/fi";
+import { FiClock, FiCheck, FiPlay, FiX } from "react-icons/fi";
 import "./Message.css";
 
-const Message = ({ message, type, timestamp, status, isSelectable, isSelected, onClick }) => {
+const Message = ({ message, type, timestamp, status, isSelectable, isSelected, onClick, onDelete }) => {
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -41,7 +41,33 @@ const Message = ({ message, type, timestamp, status, isSelectable, isSelected, o
       );
     }
 
+    if (message.imageURL) {
+      return (
+        <div className="message-image-container">
+          <img 
+            src={message.imageURL} 
+            alt={message.text || "Shared image"}
+            className="message-image"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(message.imageURL, '_blank');
+            }}
+          />
+          {message.text && <p className="image-caption">{message.text}</p>}
+        </div>
+      );
+    }
+
     return <span>{message.text || message}</span>;
+  };
+
+  const handleContextMenu = (e) => {
+    if (onDelete && type === 'sent') {
+      e.preventDefault();
+      if (window.confirm("Delete this message?")) {
+        onDelete();
+      }
+    }
   };
 
   return (
@@ -50,7 +76,22 @@ const Message = ({ message, type, timestamp, status, isSelectable, isSelected, o
         isSelected ? "selected" : ""
       }`}
       onClick={onClick}
+      onContextMenu={handleContextMenu}
     >
+      {onDelete && type === 'sent' && !isSelectable && (
+        <button 
+          className="message-delete-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm("Delete this message?")) {
+              onDelete();
+            }
+          }}
+          title="Delete message"
+        >
+          <FiX />
+        </button>
+      )}
       <div className="message-content">
         {renderMessageContent()}
       </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import { db } from "../../firebase/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import { FiX, FiSearch, FiUser } from "react-icons/fi";
 import "./UserListPopup.css";
 
@@ -15,35 +15,55 @@ const UserListPopup = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [creatingChat, setCreatingChat] = useState(null);
 
-  // Fetch all users from Firestore
+  // Real-time listener for all users
   useEffect(() => {
-    if (!isOpen || !user) return;
+    if (!isOpen || !user) {
+      setUsers([]);
+      setFilteredUsers([]);
+      return;
+    }
 
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const usersQuery = query(
-          collection(db, "users"),
-          orderBy("displayName", "asc")
-        );
-        const snapshot = await getDocs(usersQuery);
+    setLoading(true);
+    
+    // Set up real-time listener for users
+    const usersQuery = collection(db, "users");
+    const unsubscribe = onSnapshot(
+      usersQuery,
+      (snapshot) => {
         const usersData = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .filter((u) => u.id !== user.uid); // Exclude current user
+          .map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+            };
+          })
+          .filter((u) => {
+            // Exclude current user
+            if (u.id === user.uid) return false;
+            // Only include users with valid data
+            return u.email || u.displayName || u.fullName;
+          })
+          .sort((a, b) => {
+            // Sort client-side by displayName or fullName
+            const nameA = (a.displayName || a.fullName || a.email || "").toLowerCase();
+            const nameB = (b.displayName || b.fullName || b.email || "").toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
 
         setUsers(usersData);
         setFilteredUsers(usersData);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      } finally {
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error listening to users:", error);
+        setUsers([]);
+        setFilteredUsers([]);
         setLoading(false);
       }
-    };
+    );
 
-    fetchUsers();
+    return () => unsubscribe();
   }, [isOpen, user]);
 
   // Filter users based on search query
@@ -100,6 +120,20 @@ const UserListPopup = ({ isOpen, onClose }) => {
     }
   };
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -134,6 +168,13 @@ const UserListPopup = ({ isOpen, onClose }) => {
             <div className="user-list-empty">
               <FiUser className="empty-icon" />
               <p>{searchQuery ? "No users found" : "No users available"}</p>
+              {!searchQuery && (
+                <p className="empty-hint">
+                  {users.length === 0 
+                    ? "No other users have registered yet. Ask someone to sign up!" 
+                    : "Try searching for a user"}
+                </p>
+              )}
               {searchQuery && (
                 <p className="empty-hint">Try a different search term</p>
               )}

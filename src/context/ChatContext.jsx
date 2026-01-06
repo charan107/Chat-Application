@@ -10,6 +10,8 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { getUserChats } from "../firebase/chats";
 import { getMessages } from "../firebase/messages";
@@ -23,6 +25,7 @@ export const ChatProvider = ({ children }) => {
   const [activeChat, setActiveChat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUserData, setCurrentUserData] = useState(null);
+  const [typingUsers, setTypingUsers] = useState({}); // { chatId: [userId1, userId2] }
 
   // Fetch current user data from Firestore
   useEffect(() => {
@@ -175,8 +178,20 @@ export const ChatProvider = ({ children }) => {
         }));
 
         // Mark messages as read when chat is active
-        if (messagesData.length > 0) {
+        if (messagesData.length > 0 && user) {
           updateChatUnreadCount(activeChat, 0);
+          // Mark received messages as read
+          const unreadMessages = messagesData.filter(
+            (msg) => msg.senderId !== user.uid && msg.status !== "read"
+          );
+          if (unreadMessages.length > 0) {
+            import("../firebase/messages").then(({ markMessagesAsRead }) => {
+              markMessagesAsRead(
+                activeChat,
+                unreadMessages.map((m) => m.id)
+              ).catch(console.error);
+            });
+          }
         }
       },
       (error) => {
@@ -253,14 +268,45 @@ export const ChatProvider = ({ children }) => {
   };
 
   const deleteSelectedMessages = async (chatId, messageIds) => {
-    // This would require batch delete in Firestore
-    // For now, we'll just update local state
-    setMessages((prev) => ({
-      ...prev,
-      [chatId]: (prev[chatId] || []).filter(
-        (msg) => !messageIds.includes(msg.id)
-      ),
-    }));
+    if (!user || !chatId || !messageIds.length) return;
+    
+    try {
+      const { deleteMessage } = await import("../firebase/messages");
+      await Promise.all(
+        messageIds.map((messageId) => deleteMessage(chatId, messageId))
+      );
+      // Real-time listener will update automatically
+    } catch (error) {
+      console.error("Error deleting messages:", error);
+      throw error;
+    }
+  };
+
+  const deleteMessage = async (chatId, messageId) => {
+    if (!user || !chatId || !messageId) return;
+    
+    try {
+      const { deleteMessage: deleteMessageFn } = await import("../firebase/messages");
+      await deleteMessageFn(chatId, messageId);
+      // Real-time listener will update automatically
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      throw error;
+    }
+  };
+
+  const setTyping = async (chatId, isTyping) => {
+    if (!user || !chatId) return;
+    
+    try {
+      const chatRef = doc(db, "chats", chatId);
+      const typingField = `typing.${user.uid}`;
+      await updateDoc(chatRef, {
+        [typingField]: isTyping ? serverTimestamp() : null,
+      });
+    } catch (error) {
+      console.error("Error setting typing status:", error);
+    }
   };
 
   const createChat = async (otherUserId) => {
@@ -276,6 +322,31 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Listen to typing indicators
+  useEffect(() => {
+    if (!activeChat || !user) {
+      setTypingUsers({});
+      return;
+    }
+
+    const chatRef = doc(db, "chats", activeChat);
+    const unsubscribe = onSnapshot(chatRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const chatData = docSnapshot.data();
+        const typing = chatData.typing || {};
+        const typingUserIds = Object.keys(typing).filter(
+          (uid) => uid !== user.uid && typing[uid] !== null
+        );
+        setTypingUsers((prev) => ({
+          ...prev,
+          [activeChat]: typingUserIds,
+        }));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [activeChat, user]);
+
   return (
     <ChatContext.Provider
       value={{
@@ -286,8 +357,11 @@ export const ChatProvider = ({ children }) => {
         addMessage,
         deleteChat,
         deleteSelectedMessages,
+        deleteMessage,
         toggleFavourite,
         createChat,
+        setTyping,
+        typingUsers: typingUsers[activeChat] || [],
         loading,
         currentUserData,
       }}
