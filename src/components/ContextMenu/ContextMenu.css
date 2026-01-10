@@ -59,3 +59,13 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .context-menu {
+    width: calc(100vw - 32px);
+    max-width: 280px;
+    left: 16px !important;
+    right: auto !important;
+  }
+}

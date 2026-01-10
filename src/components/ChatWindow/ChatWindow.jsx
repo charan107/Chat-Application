@@ -31,39 +31,6 @@ import Message from "../Message/Message";
 import ContactInfo from "../ContactInfo/ContactInfo";
 import VoiceCall from "../VoiceCall/VoiceCall";
 
-const attachmentItems = [
-  {
-    label: "Photo / Video",
-    icon: FiImage,
-    onClick: () => {
-      fileInputRef.current?.click();
-    },
-  },
-  {
-    label: "Document",
-    icon: FiFileText,
-    onClick: () => {
-      alert("Document picker coming soon!");
-      setShowAttach(false);
-    },
-  },
-  {
-    label: "Location",
-    icon: FiMapPin,
-    onClick: () => {
-      alert("Location sharing coming soon!");
-      setShowAttach(false);
-    },
-  },
-  {
-    label: "Contact",
-    icon: FiUser,
-    onClick: () => {
-      alert("Contact sharing coming soon!");
-      setShowAttach(false);
-    },
-  },
-];
 const ChatWindow = ({ onBack }) => {
   const threeDotMenuItems = [
     {
@@ -126,8 +93,44 @@ const ChatWindow = ({ onBack }) => {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
+  const documentInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  const attachmentItems = [
+    {
+      label: "Photo / Video",
+      icon: FiImage,
+      onClick: () => {
+        fileInputRef.current?.click();
+      },
+    },
+    {
+      label: "Document",
+      icon: FiFileText,
+      onClick: () => {
+        documentInputRef.current?.click();
+      },
+    },
+    {
+      label: "Location",
+      icon: FiMapPin,
+      onClick: () => {
+        alert("Location sharing coming soon!");
+        setShowAttach(false);
+      },
+    },
+    {
+      label: "Contact",
+      icon: FiUser,
+      onClick: () => {
+        alert("Contact sharing coming soon!");
+        setShowAttach(false);
+      },
+    },
+  ];
 
   // Recording timer
   useEffect(() => {
@@ -141,6 +144,13 @@ const ChatWindow = ({ onBack }) => {
     }
     return () => clearInterval(interval);
   }, [isRecording]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages]);
 
   // Close contact info when switching chats
   useEffect(() => {
@@ -223,13 +233,11 @@ const ChatWindow = ({ onBack }) => {
     const file = e.target.files?.[0];
     if (!file || !activeChat || !user) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file');
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('Image size should be less than 5MB');
       return;
@@ -237,12 +245,10 @@ const ChatWindow = ({ onBack }) => {
 
     setUploadingImage(true);
     try {
-      // Upload to Firebase Storage
       const imageRef = ref(storage, `chat-images/${activeChat}/${Date.now()}_${file.name}`);
       await uploadBytes(imageRef, file);
       const imageURL = await getDownloadURL(imageRef);
 
-      // Send message with image
       await addMessage(activeChat, {
         text: file.name,
         type: "sent",
@@ -253,7 +259,6 @@ const ChatWindow = ({ onBack }) => {
 
       setShowAttach(false);
     } catch (error) {
-      console.error("Error uploading image:", error);
       alert("Failed to upload image. Please try again.");
     } finally {
       setUploadingImage(false);
@@ -263,14 +268,48 @@ const ChatWindow = ({ onBack }) => {
     }
   };
 
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeChat || !user) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size should be less than 10MB');
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const fileRef = ref(storage, `chat-files/${activeChat}/${Date.now()}_${file.name}`);
+      await uploadBytes(fileRef, file);
+      const fileURL = await getDownloadURL(fileRef);
+
+      await addMessage(activeChat, {
+        text: file.name,
+        type: "sent",
+        fileURL: fileURL,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      });
+
+      setShowAttach(false);
+    } catch (error) {
+      alert("Failed to upload file. Please try again.");
+    } finally {
+      setUploadingFile(false);
+      if (documentInputRef.current) {
+        documentInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleMessageDelete = async (messageId) => {
     if (!messageId || !activeChat) return;
-    
+
     if (window.confirm("Are you sure you want to delete this message?")) {
       try {
         await deleteMessage(activeChat, messageId);
       } catch (error) {
-        console.error("Error deleting message:", error);
         alert("Failed to delete message. Please try again.");
       }
     }
@@ -278,29 +317,22 @@ const ChatWindow = ({ onBack }) => {
 
   const startRecording = () => {
     setIsRecording(true);
-    // Here you would start actual audio recording
-    console.log("Started recording...");
   };
 
   const stopRecording = () => {
     setIsRecording(false);
-    // Here you would stop recording and get the audio blob
-    console.log("Stopped recording...");
   };
 
   const sendVoiceMessage = () => {
-    // Here you would send the recorded audio
     addMessage(activeChat, {
       type: "voice",
       duration: recordingTime,
-      // audioBlob would be added here
     });
     setIsRecording(false);
   };
 
   const cancelRecording = () => {
     setIsRecording(false);
-    console.log("Recording cancelled");
   };
   if (showVoiceCall) {
   return (
@@ -446,6 +478,7 @@ const ChatWindow = ({ onBack }) => {
               </span>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input + Popup Wrapper */}
@@ -454,20 +487,27 @@ const ChatWindow = ({ onBack }) => {
             <input
               type="file"
               ref={fileInputRef}
-              accept="image/*"
+              accept="image/*,video/*"
               onChange={handleImageUpload}
+              style={{ display: 'none' }}
+            />
+            <input
+              type="file"
+              ref={documentInputRef}
+              accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.zip,.rar"
+              onChange={handleDocumentUpload}
               style={{ display: 'none' }}
             />
             <button
               className="input-icon-btn"
               onClick={() => setShowAttach((prev) => !prev)}
-              disabled={uploadingImage}
+              disabled={uploadingImage || uploadingFile}
             >
               <FiPlus />
             </button>
 
             <input
-              placeholder={uploadingImage ? "Uploading image..." : "Type a message..."}
+              placeholder={uploadingImage || uploadingFile ? "Uploading..." : "Type a message..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={(e) => {
@@ -476,7 +516,7 @@ const ChatWindow = ({ onBack }) => {
                   handleSend();
                 }
               }}
-              disabled={uploadingImage}
+              disabled={uploadingImage || uploadingFile}
             />
 
             {message.trim() ? (

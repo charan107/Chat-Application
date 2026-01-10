@@ -32,12 +32,10 @@ const Register = () => {
   // Handle navigation when registration completes
   useEffect(() => {
     if (registrationComplete && !isRegistering) {
-      console.log("Registration complete, setting up navigation...");
       const timer = setTimeout(() => {
-        console.log("Navigating to login...");
         navigate("/login", { replace: true });
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [registrationComplete, isRegistering, navigate]);
@@ -71,24 +69,17 @@ const Register = () => {
     setError(null); // Clear any previous errors
 
     try {
-      console.log("Starting registration...");
-      
-      // 1️⃣ Create Auth user
-      console.log("Creating Firebase Auth user...");
       const userCredential = await registerUser(
         formData.email,
         formData.password
       );
 
       const user = userCredential.user;
-      console.log("Auth user created:", user.uid);
-      
+
       let photoURL = "";
 
-      // 2️⃣ Upload profile photo (if exists)
       if (formData.profilePhoto) {
         try {
-          console.log("Uploading profile photo...");
           const photoRef = ref(
             storage,
             `profile-images/${user.uid}`
@@ -96,15 +87,11 @@ const Register = () => {
 
           await uploadBytes(photoRef, formData.profilePhoto);
           photoURL = await getDownloadURL(photoRef);
-          console.log("Photo uploaded:", photoURL);
         } catch (uploadError) {
           console.error("Photo upload error:", uploadError);
-          // Continue registration even if photo upload fails
         }
       }
 
-      // 3️⃣ Save complete user profile + preferences (Firestore)
-      console.log("Saving user data to Firestore...");
       const userData = {
         // Basic Information
         uid: user.uid,
@@ -148,30 +135,16 @@ const Register = () => {
 
       try {
         await Promise.race([firestorePromise, timeoutPromise]);
-        console.log("User data saved to Firestore successfully");
       } catch (firestoreError) {
         console.error("Firestore save error:", firestoreError);
-        // Even if Firestore fails, user is created in Auth, so continue with registration
-        // The user can update their profile later
-        console.warn("Continuing registration despite Firestore error - user is authenticated");
-        // Don't show error since registration succeeded - profile can be updated later
       }
 
-      // 4️⃣ Success UI - Update states
-      console.log("Registration complete, updating UI...");
-      
-      // Clear any errors and update states - useEffect will handle navigation
       setError(null);
       setIsRegistering(false);
       setRegistrationComplete(true);
 
     } catch (error) {
       console.error("Registration error:", error);
-      console.error("Error details:", {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      });
       setIsRegistering(false);
       setRegistrationComplete(false);
       

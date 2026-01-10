@@ -158,7 +158,7 @@ export const ChatProvider = ({ children }) => {
 
     const unsubscribeMessages = onSnapshot(
       messagesQuery,
-      (snapshot) => {
+      async (snapshot) => {
         const messagesData = snapshot.docs.map((doc) => {
           const data = doc.data();
           return {
@@ -177,20 +177,32 @@ export const ChatProvider = ({ children }) => {
           [activeChat]: messagesData,
         }));
 
-        // Mark messages as read when chat is active
         if (messagesData.length > 0 && user) {
           updateChatUnreadCount(activeChat, 0);
-          // Mark received messages as read
-          const unreadMessages = messagesData.filter(
-            (msg) => msg.senderId !== user.uid && msg.status !== "read"
+
+          const { markMessagesAsRead, updateMessageStatus } = await import("../firebase/messages");
+
+          const receivedMessages = messagesData.filter(
+            (msg) => msg.senderId !== user.uid
+          );
+
+          const undeliveredMessages = receivedMessages.filter(
+            (msg) => msg.status === "sent"
+          );
+          if (undeliveredMessages.length > 0) {
+            undeliveredMessages.forEach((msg) => {
+              updateMessageStatus(activeChat, msg.id, "delivered").catch(console.error);
+            });
+          }
+
+          const unreadMessages = receivedMessages.filter(
+            (msg) => msg.status !== "read"
           );
           if (unreadMessages.length > 0) {
-            import("../firebase/messages").then(({ markMessagesAsRead }) => {
-              markMessagesAsRead(
-                activeChat,
-                unreadMessages.map((m) => m.id)
-              ).catch(console.error);
-            });
+            markMessagesAsRead(
+              activeChat,
+              unreadMessages.map((m) => m.id)
+            ).catch(console.error);
           }
         }
       },
